@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ParkSense — Мониторинг парковок Астаны</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Google Fonts: Syne (display) + Manrope (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+  <!-- ════════════ HEADER ════════════ -->
+  <header class="header">
+    <div class="header__inner">
+      <div class="logo">
+        <span class="logo__icon">⬡</span>
+        <span class="logo__text">ParkSense</span>
+      </div>
+      <div class="header__meta">
+        <span class="live-badge">
+          <span class="live-dot"></span>LIVE
+        </span>
+        <span class="header__city">Астана, Казахстан</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════════ MAIN LAYOUT ════════════ -->
+  <main class="layout">
+
+    <!-- ── Боковая панель ── -->
+    <aside class="sidebar">
+
+      <p class="sidebar__label">Парковки</p>
+
+      <!-- Кнопка показа/скрытия маркеров -->
+      <button id="toggleBtn" class="toggle-btn" onclick="toggleParkings()">
+        <span class="toggle-btn__icon">◎</span>
+        Показать парковки
+      </button>
+
+      <!-- Карточки парковок -->
+      <div class="cards" id="cards">
+
+        <!-- Парковка 1 -->
+        <div class="card" id="card-parking_1" onclick="focusParking('parking_1')">
+          <div class="card__header">
+            <div class="card__indicator" id="ind-parking_1"></div>
+            <div>
+              <div class="card__name">Кумисбекова 4</div>
+              <div class="card__addr">ул. Кумисбекова 4</div>
+            </div>
+          </div>
+          <div class="card__stats">
+            <div class="stat stat--free">
+              <div class="stat__value" id="free-parking_1">—</div>
+              <div class="stat__label">Свободно</div>
+            </div>
+            <div class="stat__divider"></div>
+            <div class="stat stat--busy">
+              <div class="stat__value" id="occ-parking_1">—</div>
+              <div class="stat__label">Занято</div>
+            </div>
+            <div class="stat__divider"></div>
+            <div class="stat">
+              <div class="stat__value" id="total-parking_1">—</div>
+              <div class="stat__label">Всего</div>
+            </div>
+          </div>
+          <div class="card__bar-wrap">
+            <div class="card__bar" id="bar-parking_1"></div>
+          </div>
+          <div class="card__time" id="time-parking_1">Ожидание данных…</div>
+        </div>
+
+        <!-- Парковка 2 -->
+        <div class="card" id="card-parking_2" onclick="focusParking('parking_2')">
+          <div class="card__header">
+            <div class="card__indicator" id="ind-parking_2"></div>
+            <div>
+              <div class="card__name">Тәуелсіздік 47А</div>
+              <div class="card__addr">пр. Тәуелсіздік 47А</div>
+            </div>
+          </div>
+          <div class="card__stats">
+            <div class="stat stat--free">
+              <div class="stat__value" id="free-parking_2">—</div>
+              <div class="stat__label">Свободно</div>
+            </div>
+            <div class="stat__divider"></div>
+            <div class="stat stat--busy">
+              <div class="stat__value" id="occ-parking_2">—</div>
+              <div class="stat__label">Занято</div>
+            </div>
+            <div class="stat__divider"></div>
+            <div class="stat">
+              <div class="stat__value" id="total-parking_2">—</div>
+              <div class="stat__label">Всего</div>
+            </div>
+          </div>
+          <div class="card__bar-wrap">
+            <div class="card__bar" id="bar-parking_2"></div>
+          </div>
+          <div class="card__time" id="time-parking_2">Ожидание данных…</div>
+        </div>
+
+      </div><!-- /cards -->
+
+      <!-- График истории из БД -->
+      <div class="history-block">
+        <p class="sidebar__label" style="margin-bottom:10px">История заполнения</p>
+        <div class="history-tabs">
+          <button class="htab htab--active" onclick="switchHistory('parking_1', this)">Кумисбекова</button>
+          <button class="htab" onclick="switchHistory('parking_2', this)">Тәуелсіздік</button>
+        </div>
+        <canvas id="historyChart" height="130"></canvas>
+      </div>
+
+      <!-- Легенда -->
+      <div class="legend">
+        <p class="sidebar__label" style="margin-bottom:10px">Легенда</p>
+        <div class="legend__item"><span class="legend__dot" style="background:#22c55e"></span>Много свободных</div>
+        <div class="legend__item"><span class="legend__dot" style="background:#eab308"></span>Мало мест</div>
+        <div class="legend__item"><span class="legend__dot" style="background:#ef4444"></span>Почти заполнено</div>
+      </div>
+
+      <!-- Статус синхронизации -->
+      <div class="sync-info">
+        <span class="sync-icon">↻</span>
+        Обновление каждые <strong>10 сек</strong>
+        <br/>
+        <span id="lastSync" style="font-size:11px;opacity:.5">—</span>
+      </div>
+
+    </aside>
+
+    <!-- ── Карта ── -->
+    <section class="map-section">
+      <div id="map"></div>
+      <div class="map-overlay" id="mapOverlay">
+        <div class="map-overlay__inner">
+          <span class="map-overlay__icon">◎</span>
+          <p>Нажмите <strong>«Показать парковки»</strong><br/>чтобы увидеть точки на карте</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Chart.js для графиков -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/static/js/map.js"></script>
+</body>
+</html>
